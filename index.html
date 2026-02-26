@@ -2,308 +2,291 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>bretlab-ai-workflow-demo</title>
-  <meta name="description" content="Demo técnico: workflow n8n + LLM (JSON output) + router por intención + Supabase + webhook response." />
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BretLab AI Workflow Demo</title>
+  <meta name="description" content="AI-assisted routing workflow demo built with n8n, Supabase and an LLM (structured JSON outputs)." />
   <style>
     :root{
-      --bg:#0b0f14;
-      --panel:#0f1624;
-      --panel2:#0c121e;
-      --text:#e8eef7;
-      --muted:#a7b2c3;
-      --border:rgba(255,255,255,.08);
-      --accent:#7aa2ff;
-      --shadow: 0 14px 40px rgba(0,0,0,.45);
-      --radius:16px;
-      --max: 1080px;
+      --bg0:#0b0f17;
+      --bg1:#0e1420;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.08);
+      --border:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.72);
+      --muted2:rgba(255,255,255,.58);
+      --shadow: 0 20px 80px rgba(0,0,0,.55);
+      --radius:18px;
+      --max:1100px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
       color:var(--text);
       background:
-        radial-gradient(1000px 700px at 15% -10%, rgba(122,162,255,.18), transparent 60%),
-        radial-gradient(900px 700px at 90% 0%, rgba(122,162,255,.10), transparent 60%),
-        var(--bg);
-      line-height:1.55;
+        radial-gradient(900px 420px at 20% 8%, rgba(80,120,255,.18), transparent 55%),
+        radial-gradient(800px 360px at 80% 18%, rgba(34,197,94,.12), transparent 60%),
+        radial-gradient(1000px 520px at 50% 100%, rgba(255,255,255,.06), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
     }
-    a{color:var(--accent); text-decoration:none}
-    a:hover{text-decoration:underline}
-
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 18px}
-
-    header{
-      padding: 44px 0 18px;
-      border-bottom:1px solid var(--border);
-      background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-    }
-    .brand{
-      display:flex; align-items:center; gap:12px;
-      margin-bottom:10px;
-    }
-    .dot{
-      width:12px; height:12px; border-radius:999px;
-      background: var(--accent);
-      box-shadow: 0 0 0 6px rgba(122,162,255,.12);
-    }
-    h1{margin:0; font-size:34px; letter-spacing:.2px}
-    .subtitle{margin:10px 0 0; color:var(--muted); max-width: 900px}
-
-    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px}
-    .chip{
-      font-size:12px;
-      color:var(--muted);
+    a{color:inherit; text-decoration:none}
+    .wrap{max-width:var(--max); margin:0 auto; padding:56px 18px 80px}
+    .badge{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:8px 12px;
       border:1px solid var(--border);
-      background: rgba(255,255,255,.03);
-      padding:6px 10px;
+      background:rgba(0,0,0,.25);
       border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      letter-spacing:.2px;
+      backdrop-filter: blur(10px);
+    }
+    .badge .dot{
+      width:8px; height:8px; border-radius:999px;
+      background:rgba(34,197,94,.85);
+      box-shadow:0 0 0 6px rgba(34,197,94,.12);
+    }
+    h1{
+      margin:16px 0 10px;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height:1.05;
+      letter-spacing:-.02em;
+    }
+    p.lead{
+      margin:0 0 18px;
+      color:var(--muted);
+      max-width:820px;
+      font-size:16px;
+      line-height:1.6;
+    }
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 26px}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:11px 14px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      font-weight:600;
+      font-size:13px;
+      backdrop-filter: blur(10px);
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:hover{transform: translateY(-1px); background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.16)}
+    .btn.primary{
+      background:rgba(255,255,255,.10);
+      border-color:rgba(255,255,255,.18);
     }
 
-    .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
-    .btn{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:10px 12px;
-      border-radius:12px;
+    .card{
+      background:var(--card);
       border:1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      color:var(--text);
+      border-radius:var(--radius);
       box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .section{padding:18px; margin-top:18px}
+    .section h2{
+      margin:0 0 10px;
+      font-size:18px;
+      letter-spacing:-.01em;
+    }
+    .section ul{
+      margin:0;
+      padding-left:18px;
+      color:var(--muted);
+      line-height:1.75;
       font-size:14px;
     }
-    .btn:hover{background: rgba(255,255,255,.06); text-decoration:none}
-    .btn small{color:var(--muted); font-size:12px}
-
-    main{padding: 22px 0 60px}
 
     .grid{
       display:grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(12, 1fr);
       gap:14px;
-      margin-top:18px;
+      margin-top:14px;
     }
-    @media (min-width: 920px){
-      .grid{grid-template-columns: 1fr 1fr}
-    }
-    .card{
-      background: rgba(15,22,36,.72);
+    .tile{
+      grid-column: span 6;
+      padding:14px;
+      border-radius:var(--radius);
       border:1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      box-shadow: var(--shadow);
+      background:rgba(0,0,0,.20);
+      overflow:hidden;
     }
-    .card h2{margin:0 0 8px; font-size:18px}
-    .card p{margin:0; color:var(--muted); font-size:14px}
-
-    .section-title{
-      margin: 26px 0 10px;
-      font-size: 16px;
-      color: var(--text);
+    .tile h3{
+      margin:0 0 10px;
+      font-size:14px;
+      color:var(--muted);
+      font-weight:650;
       letter-spacing:.2px;
     }
-    .section-sub{
-      margin: 0 0 14px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .shots{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:16px;
-    }
-    @media (min-width: 900px){
-      .shots{grid-template-columns: 1fr 1fr}
-    }
-
-    .shot{
-      background: rgba(12,18,30,.72);
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      overflow:hidden;
-      box-shadow: var(--shadow);
-    }
-    .shot img{
+    figure{margin:0}
+    img{
       width:100%;
+      height:auto;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
       display:block;
-      background:#070a10;
+      background:rgba(255,255,255,.03);
     }
-    .cap{
-      padding: 12px 12px 14px;
-      border-top:1px solid var(--border);
+    figcaption{
+      margin-top:10px;
+      color:var(--muted2);
+      font-size:12.5px;
+      line-height:1.5;
     }
-    .cap strong{display:block; font-size:14px; margin-bottom:4px}
-    .cap span{color:var(--muted); font-size:13px}
 
-    code{
-      background: rgba(255,255,255,.06);
+    .chips{
+      display:flex; flex-wrap:wrap; gap:8px;
+      padding:14px 18px;
+      margin-top:16px;
+    }
+    .chip{
       border:1px solid var(--border);
-      padding:2px 6px;
-      border-radius:8px;
+      background:rgba(0,0,0,.25);
+      padding:7px 10px;
+      border-radius:999px;
       font-size:12px;
-      color: var(--text);
+      color:var(--muted);
+      backdrop-filter: blur(10px);
     }
 
-    footer{
-      border-top:1px solid var(--border);
-      color:var(--muted);
-      padding:18px 0;
-      font-size:13px;
+    .footer{
+      margin-top:26px;
+      padding-top:18px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color:var(--muted2);
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    @media (max-width: 860px){
+      .tile{grid-column: span 12;}
     }
   </style>
 </head>
-
 <body>
-  <header>
-    <div class="wrap">
-      <div class="brand">
-        <div class="dot"></div>
-        <h1>bretlab-ai-workflow-demo</h1>
-      </div>
-      <p class="subtitle">
-        Demo end-to-end de un workflow en <strong>n8n</strong> que recibe mensajes vía webhook (testeado con <strong>Postman</strong>),
-        normaliza el payload, usa un <strong>LLM con salida JSON estructurada</strong> para decidir la intención (<code>intent</code>/<code>next_step</code>),
-        enruta con un <strong>Switch</strong>, consulta/persiste en <strong>Supabase</strong> y publica la respuesta final a un webhook (webhook.site).
-      </p>
+  <main class="wrap">
+    <div class="badge"><span class="dot"></span> Portfolio · AI Workflow</div>
+    <h1>BretLab AI Workflow Demo</h1>
+    <p class="lead">
+      Demo técnico de un flujo en <b>n8n</b> que procesa un mensaje entrante, guarda historial en <b>Supabase</b>,
+      usa un <b>LLM</b> para detectar intención con salida JSON estructurada, enruta la conversación por ramas y devuelve
+      una respuesta final (simulada) vía webhook.
+    </p>
 
-      <div class="chips">
-        <div class="chip">n8n</div>
-        <div class="chip">LLM JSON Output</div>
-        <div class="chip">Intent Routing</div>
-        <div class="chip">Supabase REST</div>
-        <div class="chip">Postman</div>
-        <div class="chip">Webhook.site</div>
-      </div>
-
-      <div class="actions">
-        <a class="btn" href="workflow/BretLab_Worker_Flow.sanitized.json" target="_blank" rel="noreferrer">
-          Workflow JSON <small>(sanitized)</small>
-        </a>
-        <a class="btn" href="workflow/payloads/01-greeting.json" target="_blank" rel="noreferrer">
-          Payload <small>greeting</small>
-        </a>
-        <a class="btn" href="workflow/payloads/02-search-worker.json" target="_blank" rel="noreferrer">
-          Payload <small>search_worker</small>
-        </a>
-        <a class="btn" href="workflow/payloads/03-ask-location.json" target="_blank" rel="noreferrer">
-          Payload <small>ask_location</small>
-        </a>
-        <a class="btn" href="README.md" target="_blank" rel="noreferrer">
-          README
-        </a>
-      </div>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/Ryffje/bretlab-ai-workflow-demo" target="_blank" rel="noreferrer">Repository</a>
+      <a class="btn" href="./workflow/BretLab_Worker_Flow.sanitized.json" target="_blank" rel="noreferrer">Workflow JSON (sanitized)</a>
+      <a class="btn" href="./workflow/payloads/01-greeting.json" target="_blank" rel="noreferrer">Sample payloads</a>
     </div>
-  </header>
 
-  <main>
-    <div class="wrap">
+    <section class="card section">
+      <h2>What this demo demonstrates</h2>
+      <ul>
+        <li>Webhook trigger (test) and message normalization</li>
+        <li>Persisting conversation messages into Supabase</li>
+        <li>LLM node returning <b>strict JSON</b> (intent + next_step + entities)</li>
+        <li>Router (Switch) to branch the flow based on next_step</li>
+        <li>Fetching workers dynamically from Supabase (filters)</li>
+        <li>Formatting a human-friendly response from structured data</li>
+      </ul>
+    </section>
 
-      <div class="grid">
-        <div class="card">
-          <h2>Objetivo</h2>
-          <p>
-            Mostrar un flujo que toma un mensaje entrante, genera una decisión con LLM (output estructurado),
-            ejecuta lógica de ruteo y consulta datos para devolver una respuesta final lista para enviarse al canal.
-          </p>
-        </div>
-        <div class="card">
-          <h2>Seguridad</h2>
-          <p>
-            Tokens/headers y data sensible se ocultan. Este repo es demostrativo: usa <code>.env.example</code> para documentar variables
-            sin subir secretos.
-          </p>
-        </div>
+    <section class="grid">
+      <div class="tile">
+        <h3>01 · Workflow overview</h3>
+        <figure>
+          <img src="./screenshots/01-architecture-workflow-overview.png" alt="Workflow overview" />
+          <figcaption>Vista general del flujo en n8n (webhook → normalize → DB → LLM → router → branches).</figcaption>
+        </figure>
       </div>
 
-      <h3 class="section-title">Screenshots (paso a paso)</h3>
-      <p class="section-sub">
-        Secuencia del demo: vista general → trigger → configuración LLM → output estructurado → router → Supabase insert →
-        Supabase fetch con filtro → formateo → respuesta final.
-      </p>
+      <div class="tile">
+        <h3>02 · Trigger (Postman)</h3>
+        <figure>
+          <img src="./screenshots/02-webhook-trigger-postman.png" alt="Postman calling n8n webhook" />
+          <figcaption>Prueba del webhook con Postman (payload simulado de mensaje entrante).</figcaption>
+        </figure>
+      </div>
 
-      <section class="shots" aria-label="Screenshots del demo">
-        <div class="shot">
-          <img src="screenshots/01-architecture-workflow-overview.png" alt="01 Architecture Workflow Overview">
-          <div class="cap">
-            <strong>01 — Architecture / Workflow overview</strong>
-            <span>Vista general del workflow y componentes principales.</span>
-          </div>
-        </div>
+      <div class="tile">
+        <h3>03 · LLM node config</h3>
+        <figure>
+          <img src="./screenshots/03-llm-node-config-json-output.png" alt="LLM node config JSON output" />
+          <figcaption>Configuración del nodo LLM: salida forzada a JSON (campos exactos).</figcaption>
+        </figure>
+      </div>
 
-        <div class="shot">
-          <img src="screenshots/02-webhook-trigger-postman.png" alt="02 Webhook Trigger Postman">
-          <div class="cap">
-            <strong>02 — Webhook trigger (Postman)</strong>
-            <span>Entrada simulada para pruebas end-to-end (sin proveedor de mensajería).</span>
-          </div>
-        </div>
+      <div class="tile">
+        <h3>04 · Structured output (intent)</h3>
+        <figure>
+          <img src="./screenshots/04-llm-structured-output-intent.png" alt="LLM structured output intent" />
+          <figcaption>Ejemplo de salida estructurada: <code>intent</code> + <code>next_step</code> + entidades.</figcaption>
+        </figure>
+      </div>
 
-        <div class="shot">
-          <img src="screenshots/03-llm-node-config-json-output.png" alt="03 LLM Node Config JSON Output">
-          <div class="cap">
-            <strong>03 — LLM node config (JSON output)</strong>
-            <span>El modelo devuelve JSON válido con claves esperadas (<code>intent</code>, <code>next_step</code>, etc.).</span>
-          </div>
-        </div>
+      <div class="tile">
+        <h3>05 · Router (Switch branches)</h3>
+        <figure>
+          <img src="./screenshots/05-router-switch-branches.png" alt="Router switch branches" />
+          <figcaption>Switch en n8n que enruta según <code>next_step</code>.</figcaption>
+        </figure>
+      </div>
 
-        <div class="shot">
-          <img src="screenshots/04-llm-structured-output-intent.png" alt="04 LLM Structured Output Intent">
-          <div class="cap">
-            <strong>04 — LLM structured output</strong>
-            <span>Salida estructurada que alimenta el ruteo (intent/next_step + datos normalizados).</span>
-          </div>
-        </div>
+      <div class="tile">
+        <h3>06 · Supabase insert (messages)</h3>
+        <figure>
+          <img src="./screenshots/06-supabase-insert-messages.png" alt="Supabase insert messages" />
+          <figcaption>Insert del mensaje entrante a la tabla <code>messages</code>.</figcaption>
+        </figure>
+      </div>
 
-        <div class="shot">
-          <img src="screenshots/05-router-switch-branches.png" alt="05 Router Switch Branches">
-          <div class="cap">
-            <strong>05 — Router / Switch</strong>
-            <span>Enrutamiento por <code>next_step</code> (ramas: greeting, fetch_workers, ask_location, ask_service, send_message).</span>
-          </div>
-        </div>
+      <div class="tile">
+        <h3>07 · Supabase fetch (workers)</h3>
+        <figure>
+          <img src="./screenshots/07-supabase-fetch-workers-dynamic-filter.png" alt="Supabase fetch workers" />
+          <figcaption>Consulta a <code>workers</code> con filtros dinámicos (skill/location).</figcaption>
+        </figure>
+      </div>
 
-        <div class="shot">
-          <img src="screenshots/06-supabase-insert-messages.png" alt="06 Supabase Insert Messages">
-          <div class="cap">
-            <strong>06 — Supabase insert (messages)</strong>
-            <span>Persistencia del historial: POST a Supabase REST.</span>
-          </div>
-        </div>
+      <div class="tile">
+        <h3>08 · Format response</h3>
+        <figure>
+          <img src="./screenshots/08-formatted-workers-response.png" alt="Formatted workers response" />
+          <figcaption>Formateo final para mostrar resultados de forma clara al usuario.</figcaption>
+        </figure>
+      </div>
 
-        <div class="shot">
-          <img src="screenshots/07-supabase-fetch-workers-dynamic-filter.png" alt="07 Supabase Fetch Workers Dynamic Filter">
-          <div class="cap">
-            <strong>07 — Supabase fetch (workers)</strong>
-            <span>Consulta con filtros dinámicos (ej. <code>ilike</code>) según skill/location.</span>
-          </div>
-        </div>
+      <div class="tile" style="grid-column: span 12;">
+        <h3>09 · Final response (webhook receiver)</h3>
+        <figure>
+          <img src="./screenshots/09-webhooksite-final-response.png" alt="Webhook.site final response" />
+          <figcaption>Respuesta final enviada a un receiver (webhook.site) para evidenciar el output.</figcaption>
+        </figure>
+      </div>
+    </section>
 
-        <div class="shot">
-          <img src="screenshots/08-formatted-workers-response.png" alt="08 Formatted Workers Response">
-          <div class="cap">
-            <strong>08 — Format response (JS)</strong>
-            <span>Formateo final de la lista y fallback si no hay resultados.</span>
-          </div>
-        </div>
+    <section class="card chips" aria-label="Technology stack">
+      <span class="chip">n8n</span>
+      <span class="chip">Supabase</span>
+      <span class="chip">LLM (structured JSON)</span>
+      <span class="chip">Postman</span>
+      <span class="chip">Webhook receiver</span>
+      <span class="chip">Routing / Branching</span>
+    </section>
 
-        <div class="shot">
-          <img src="screenshots/09-webhooksite-final-response.png" alt="09 Webhooksite Final Response">
-          <div class="cap">
-            <strong>09 — Final response (webhook.site)</strong>
-            <span>POST final del mensaje listo para enviarse al usuario (demostración completa end-to-end).</span>
-          </div>
-        </div>
-      </section>
+    <div class="footer">
+      <span>© Jeffry León Solís · BretLab demo</span>
+      <span>GitHub Pages · Static showcase</span>
     </div>
   </main>
-
-  <footer>
-    <div class="wrap">
-      Hecho para demo/portafolio. Sugerencia: habilita GitHub Pages (main / root) para publicar este sitio.
-    </div>
-  </footer>
 </body>
 </html>
