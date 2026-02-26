@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bretlab-ai-workflow-demo</title>
+  <meta name="description" content="Demo técnico: workflow n8n + LLM (JSON output) + router por intención + Supabase + webhook response." />
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#0f1624;
+      --panel2:#0c121e;
+      --text:#e8eef7;
+      --muted:#a7b2c3;
+      --border:rgba(255,255,255,.08);
+      --accent:#7aa2ff;
+      --shadow: 0 14px 40px rgba(0,0,0,.45);
+      --radius:16px;
+      --max: 1080px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 700px at 15% -10%, rgba(122,162,255,.18), transparent 60%),
+        radial-gradient(900px 700px at 90% 0%, rgba(122,162,255,.10), transparent 60%),
+        var(--bg);
+      line-height:1.55;
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .wrap{max-width:var(--max); margin:0 auto; padding:0 18px}
+
+    header{
+      padding: 44px 0 18px;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      margin-bottom:10px;
+    }
+    .dot{
+      width:12px; height:12px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(122,162,255,.12);
+    }
+    h1{margin:0; font-size:34px; letter-spacing:.2px}
+    .subtitle{margin:10px 0 0; color:var(--muted); max-width: 900px}
+
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px}
+    .chip{
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      padding:6px 10px;
+      border-radius:999px;
+    }
+
+    .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      box-shadow: var(--shadow);
+      font-size:14px;
+    }
+    .btn:hover{background: rgba(255,255,255,.06); text-decoration:none}
+    .btn small{color:var(--muted); font-size:12px}
+
+    main{padding: 22px 0 60px}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      margin-top:18px;
+    }
+    @media (min-width: 920px){
+      .grid{grid-template-columns: 1fr 1fr}
+    }
+    .card{
+      background: rgba(15,22,36,.72);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .card h2{margin:0 0 8px; font-size:18px}
+    .card p{margin:0; color:var(--muted); font-size:14px}
+
+    .section-title{
+      margin: 26px 0 10px;
+      font-size: 16px;
+      color: var(--text);
+      letter-spacing:.2px;
+    }
+    .section-sub{
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .shots{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:16px;
+    }
+    @media (min-width: 900px){
+      .shots{grid-template-columns: 1fr 1fr}
+    }
+
+    .shot{
+      background: rgba(12,18,30,.72);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: var(--shadow);
+    }
+    .shot img{
+      width:100%;
+      display:block;
+      background:#070a10;
+    }
+    .cap{
+      padding: 12px 12px 14px;
+      border-top:1px solid var(--border);
+    }
+    .cap strong{display:block; font-size:14px; margin-bottom:4px}
+    .cap span{color:var(--muted); font-size:13px}
+
+    code{
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--border);
+      padding:2px 6px;
+      border-radius:8px;
+      font-size:12px;
+      color: var(--text);
+    }
+
+    footer{
+      border-top:1px solid var(--border);
+      color:var(--muted);
+      padding:18px 0;
+      font-size:13px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <div class="dot"></div>
+        <h1>bretlab-ai-workflow-demo</h1>
+      </div>
+      <p class="subtitle">
+        Demo end-to-end de un workflow en <strong>n8n</strong> que recibe mensajes vía webhook (testeado con <strong>Postman</strong>),
+        normaliza el payload, usa un <strong>LLM con salida JSON estructurada</strong> para decidir la intención (<code>intent</code>/<code>next_step</code>),
+        enruta con un <strong>Switch</strong>, consulta/persiste en <strong>Supabase</strong> y publica la respuesta final a un webhook (webhook.site).
+      </p>
+
+      <div class="chips">
+        <div class="chip">n8n</div>
+        <div class="chip">LLM JSON Output</div>
+        <div class="chip">Intent Routing</div>
+        <div class="chip">Supabase REST</div>
+        <div class="chip">Postman</div>
+        <div class="chip">Webhook.site</div>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="workflow/BretLab_Worker_Flow.sanitized.json" target="_blank" rel="noreferrer">
+          Workflow JSON <small>(sanitized)</small>
+        </a>
+        <a class="btn" href="workflow/payloads/01-greeting.json" target="_blank" rel="noreferrer">
+          Payload <small>greeting</small>
+        </a>
+        <a class="btn" href="workflow/payloads/02-search-worker.json" target="_blank" rel="noreferrer">
+          Payload <small>search_worker</small>
+        </a>
+        <a class="btn" href="workflow/payloads/03-ask-location.json" target="_blank" rel="noreferrer">
+          Payload <small>ask_location</small>
+        </a>
+        <a class="btn" href="README.md" target="_blank" rel="noreferrer">
+          README
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+
+      <div class="grid">
+        <div class="card">
+          <h2>Objetivo</h2>
+          <p>
+            Mostrar un flujo que toma un mensaje entrante, genera una decisión con LLM (output estructurado),
+            ejecuta lógica de ruteo y consulta datos para devolver una respuesta final lista para enviarse al canal.
+          </p>
+        </div>
+        <div class="card">
+          <h2>Seguridad</h2>
+          <p>
+            Tokens/headers y data sensible se ocultan. Este repo es demostrativo: usa <code>.env.example</code> para documentar variables
+            sin subir secretos.
+          </p>
+        </div>
+      </div>
+
+      <h3 class="section-title">Screenshots (paso a paso)</h3>
+      <p class="section-sub">
+        Secuencia del demo: vista general → trigger → configuración LLM → output estructurado → router → Supabase insert →
+        Supabase fetch con filtro → formateo → respuesta final.
+      </p>
+
+      <section class="shots" aria-label="Screenshots del demo">
+        <div class="shot">
+          <img src="screenshots/01-architecture-workflow-overview.png" alt="01 Architecture Workflow Overview">
+          <div class="cap">
+            <strong>01 — Architecture / Workflow overview</strong>
+            <span>Vista general del workflow y componentes principales.</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/02-webhook-trigger-postman.png" alt="02 Webhook Trigger Postman">
+          <div class="cap">
+            <strong>02 — Webhook trigger (Postman)</strong>
+            <span>Entrada simulada para pruebas end-to-end (sin proveedor de mensajería).</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/03-llm-node-config-json-output.png" alt="03 LLM Node Config JSON Output">
+          <div class="cap">
+            <strong>03 — LLM node config (JSON output)</strong>
+            <span>El modelo devuelve JSON válido con claves esperadas (<code>intent</code>, <code>next_step</code>, etc.).</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/04-llm-structured-output-intent.png" alt="04 LLM Structured Output Intent">
+          <div class="cap">
+            <strong>04 — LLM structured output</strong>
+            <span>Salida estructurada que alimenta el ruteo (intent/next_step + datos normalizados).</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/05-router-switch-branches.png" alt="05 Router Switch Branches">
+          <div class="cap">
+            <strong>05 — Router / Switch</strong>
+            <span>Enrutamiento por <code>next_step</code> (ramas: greeting, fetch_workers, ask_location, ask_service, send_message).</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/06-supabase-insert-messages.png" alt="06 Supabase Insert Messages">
+          <div class="cap">
+            <strong>06 — Supabase insert (messages)</strong>
+            <span>Persistencia del historial: POST a Supabase REST.</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/07-supabase-fetch-workers-dynamic-filter.png" alt="07 Supabase Fetch Workers Dynamic Filter">
+          <div class="cap">
+            <strong>07 — Supabase fetch (workers)</strong>
+            <span>Consulta con filtros dinámicos (ej. <code>ilike</code>) según skill/location.</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/08-formatted-workers-response.png" alt="08 Formatted Workers Response">
+          <div class="cap">
+            <strong>08 — Format response (JS)</strong>
+            <span>Formateo final de la lista y fallback si no hay resultados.</span>
+          </div>
+        </div>
+
+        <div class="shot">
+          <img src="screenshots/09-webhooksite-final-response.png" alt="09 Webhooksite Final Response">
+          <div class="cap">
+            <strong>09 — Final response (webhook.site)</strong>
+            <span>POST final del mensaje listo para enviarse al usuario (demostración completa end-to-end).</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      Hecho para demo/portafolio. Sugerencia: habilita GitHub Pages (main / root) para publicar este sitio.
+    </div>
+  </footer>
+</body>
+</html>
