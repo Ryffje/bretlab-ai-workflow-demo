@@ -1,0 +1,9 @@
+{
+    "body": {
+      "sender": "demo_user",
+      "username": "demo_user",
+      "message": "Soy de San Ramón",
+      "conversationId": "1",
+      "channel": "Channel::WhatsApp"
+    }
+  }

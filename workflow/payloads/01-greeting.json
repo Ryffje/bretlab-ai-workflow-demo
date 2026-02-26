@@ -1,0 +1,9 @@
+{
+    "body": {
+      "sender": "demo_user",
+      "username": "demo_user",
+      "message": "Hola",
+      "conversationId": "1",
+      "channel": "Channel::WhatsApp"
+    }
+  }

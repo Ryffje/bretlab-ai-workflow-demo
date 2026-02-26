@@ -1,0 +1,85 @@
+{
+    "name": "BretLab_Worker_Flow",
+    "nodes": [
+      {
+        "name": "FETCH WORKERS",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "url": "{{SUPABASE_URL}}/rest/v1/workers",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              { "name": "select", "value": "*" },
+              { "name": "skill", "value": "=ilike.*{{$json.skill_filter}}*" },
+              { "name": "location", "value": "=ilike.*{{$json.location}}*" }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              { "name": "apikey", "value": "{{SUPABASE_ANON_KEY}}" },
+              { "name": "Authorization", "value": "Bearer {{SUPABASE_ANON_KEY}}" },
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+  
+      {
+        "name": "SAVE MESSAGE",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "method": "POST",
+          "url": "{{SUPABASE_URL}}/rest/v1/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              { "name": "apikey", "value": "{{SUPABASE_ANON_KEY}}" },
+              { "name": "Authorization", "value": "Bearer {{SUPABASE_ANON_KEY}}" },
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          },
+          "sendBody": true
+        }
+      },
+  
+      {
+        "name": "SEND RESPONSE",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "method": "POST",
+          "url": "{{CHAT_WEBHOOK_URL}}",
+          "sendBody": true
+        }
+      },
+  
+      {
+        "name": "WEBHOOK WHATSAPP",
+        "type": "n8n-nodes-base.webhook",
+        "parameters": {
+          "path": "webhook-whatsapp-bretlab"
+        }
+      },
+  
+      {
+        "name": "Message a model",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "parameters": {
+          "modelId": "gpt-4-turbo",
+          "jsonOutput": true,
+          "options": {
+            "maxTokens": 500,
+            "temperature": 0.4
+          }
+        }
+      }
+    ],
+  
+    "settings": {
+      "executionOrder": "v1"
+    },
+  
+    "meta": {
+      "note": "This version has been sanitized. Use environment variables for secrets."
+    }
+  }
